@@ -20,7 +20,7 @@ func Strike(o, d *Fencer, atk, def int) (hitEnum, error) {
 	if [2]bool{o.RoW, d.RoW} != [2]bool{true, false} {
 		return hitFAL, errors.New("invalid row pairing")
 	}
-	if atk > o.Balance || def > o.Balance {
+	if atk > o.Balance || def > d.Balance {
 		return hitFAL, errors.New("invalid balance spenditure")
 	}
 
