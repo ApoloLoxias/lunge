@@ -1,4 +1,4 @@
-module lunge_game
+module lunge
 
 go 1.25.3
 
