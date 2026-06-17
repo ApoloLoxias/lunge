@@ -3,9 +3,13 @@ package main
 import "errors"
 
 type gameState struct {
-	p1     fencer
-	p2     fencer
-	kind   gameStateTypeEnum
+	p1 fencer
+	p2 fencer
+
+	kind gameStateTypeEnum
+
+	rules ruleset
+
 	parent *gameState
 }
 
@@ -129,6 +133,10 @@ func updatePlayers(st gameState, mv move) (fencer, fencer, error) {
 
 	p1.balance = b1
 	p2.balance = b2
+
+	if st.rules.initiative == initiativeALT {
+		p1.role, p2.role = p2.role, p1.role
+	}
 
 	return p1, p2, nil
 }

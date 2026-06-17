@@ -21,6 +21,16 @@ func main() {
 }
 
 func launchCMD(c *ishell.Context) {
+	gameRules := []string{string(initiativeFIX), string(initiativeALT)}
+	rulesIndex := c.MultiChoice(gameRules, "Select a ruleset")
+	var chosenRules ruleset
+	switch rulesIndex {
+	case 0:
+		chosenRules = ruleset{initiative: initiativeFIX}
+	case 1:
+		chosenRules = ruleset{initiative: initiativeALT}
+	}
+
 	fmt.Println("Input B1, B2")
 	b1, _ := strconv.Atoi(c.ReadLine())
 	b2, _ := strconv.Atoi(c.ReadLine())
@@ -56,6 +66,7 @@ func launchCMD(c *ishell.Context) {
 		p2:     p2,
 		parent: nil,
 		kind:   stateEXCHANGE,
+		rules:  chosenRules,
 	}
 
 	for true {
@@ -93,6 +104,13 @@ func launchCMD(c *ishell.Context) {
 		}
 		fmt.Printf("Player 1 has bid %d, as %s\n", bid1, p1.role)
 		fmt.Printf("Player 2 has bid %d as %s\n", bid2, p2.role)
+
+		switch currentState.p1.role {
+		case roleATK:
+			moveKind = moveTypeONEATK
+		case roleDEF:
+			moveKind = moveTypeTWOATK
+		}
 
 		currentMove := move{
 			kind: moveKind,
