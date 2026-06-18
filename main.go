@@ -102,8 +102,8 @@ func launchCMD(c *ishell.Context) {
 			fmt.Println("malformed input")
 			os.Exit(1)
 		}
-		fmt.Printf("Player 1 has bid %d, as %s\n", bid1, p1.role)
-		fmt.Printf("Player 2 has bid %d as %s\n", bid2, p2.role)
+		fmt.Printf("Player 1 has bid %d, as %s\n", bid1, currentState.p1.role)
+		fmt.Printf("Player 2 has bid %d as %s\n", bid2, currentState.p2.role)
 
 		switch currentState.p1.role {
 		case roleATK:

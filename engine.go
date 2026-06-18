@@ -115,6 +115,7 @@ func getNextState(oldStPointer *gameState, mv move) (newSt gameState, err error)
 		p1:     newP1,
 		p2:     newP2,
 		kind:   newStType,
+		rules:  oldSt.rules,
 		parent: oldStPointer,
 	}
 
