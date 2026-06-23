@@ -1,3 +1,6 @@
+//go:build !scratch
+// +build !scratch
+
 package main
 
 import (
