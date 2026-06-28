@@ -5,10 +5,11 @@ package main
 
 func main() {
 	screen := screen{
-		lines:   []string{"line 1", "line     2", "", "line 4   "},
-		borders: [2]string{"-", "|"},
-		height:  10,
-		length:  20,
+		header:   "+++++++ 󰞇 LUNGE! 󰞇 ++++++",
+		players:  []string{"󰓥 P1  ●●●●        4 Balance", "󰦝 P2  ●●●●●       5 Balance"},
+		position: []string{" Initiative: P1", " Range: 󰚌 At Measure 󰚌"},
+		height:   10,
+		length:   40,
 	}
 	screen.draw()
 
