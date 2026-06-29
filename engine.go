@@ -72,10 +72,104 @@ const (
 	hitDIS hitEnum = "disengage"
 )
 
+type lungeEnum string
+
+const (
+	lungeERR  lungeEnum = "zero-value lunge"
+	lungeONE  lungeEnum = "Player 1 lungers forward and seizes the initiative"
+	lungeTWO  lungeEnum = "Player 2 lunges forward and seizes the initiative"
+	lungeBOTH lungeEnum = "Both players try to lunge together"
+	lungeNO   lungeEnum = "Players wait for an opportunity to lunge"
+)
+
 func getNextState(oldStPointer *gameState, mv move) (newSt gameState, err error) {
+	switch oldStPointer.kind {
+	case stateEXCHANGE:
+		return getNextStateExchange(oldStPointer, mv)
+	case stateOOM:
+		return getNextStateOOM(oldStPointer, mv)
+	default:
+		return gameStateERR, errors.New("unimplemented state or broken core game logic @./engine.go fd774fae")
+	}
+}
+
+func getNextStateOOM(oldStPointer *gameState, mv move) (newSt gameState, err error) {
 	oldSt := *oldStPointer
 
-	legalityErr := checkMoveLegality(oldSt, mv)
+	legalityErr := checkMoveLegalityExchange(oldSt, mv)
+	if legalityErr != nil {
+		return oldSt, legalityErr
+	}
+
+	switch oldSt.rules.approach {
+	case noAproach:
+		newSt = gameStateERR
+		err = errors.New("Trying to play OOM phase on a ruleset with no OOM phase")
+		return newSt, err
+	case initiativeBidding:
+		return getNextStateOOMInitiativeBidding(oldStPointer, mv)
+	}
+
+	return gameStateERR, errors.New("Broken core game logic @./engine.go d51932ab")
+}
+
+func getNextStateOOMInitiativeBidding(oldStPointer *gameState, mv move) (newSt gameState, err error) {
+	oldSt := *oldStPointer
+
+	lunge, lungeError := func(oldSt gameState, mv move) (lungeEnum, error) {
+		b1 := mv.bid1
+		b2 := mv.bid2
+
+		if b1 == 0 && b2 == 0 {
+			return lungeNO, nil
+		}
+		if b1 > b2 {
+			return lungeONE, nil
+		}
+		if b2 > b1 {
+			return lungeTWO, nil
+		}
+		if b1 == b2 { // implied b1, b2 != 0
+			return lungeBOTH, nil
+		}
+
+		return lungeERR, errors.New("Broken core game logic @./engine hJKg68a6")
+	}(oldSt, mv)
+	if lungeError != nil {
+		return gameStateERR, lungeError
+	}
+
+	newSt = oldSt
+	newSt.parent = oldStPointer
+
+	switch lunge {
+	case lungeONE:
+		newSt.p1.role = roleATK
+		newSt.p2.role = roleDEF
+		newSt.kind = stateEXCHANGE
+		newSt.p1.balance -= mv.bid1
+		newSt.p2.balance -= mv.bid2
+	case lungeTWO:
+		newSt.p1.role = roleDEF
+		newSt.p2.role = roleATK
+		newSt.kind = stateEXCHANGE
+		newSt.p1.balance -= mv.bid1
+		newSt.p2.balance -= mv.bid2
+	case lungeBOTH, lungeNO:
+		return
+	case lungeERR:
+		return gameStateERR, errors.New("Invalid lunge calculated")
+	default:
+		return gameStateERR, errors.New("Broken core game logic @./engine.go uIy78t")
+	}
+
+	return newSt, nil
+}
+
+func getNextStateExchange(oldStPointer *gameState, mv move) (newSt gameState, err error) {
+	oldSt := *oldStPointer
+
+	legalityErr := checkMoveLegalityExchange(oldSt, mv)
 	if legalityErr != nil {
 		return oldSt, legalityErr
 	}
@@ -104,7 +198,7 @@ func getNextState(oldStPointer *gameState, mv move) (newSt gameState, err error)
 		return newSt, errors.New("broken core game logic @./engine.go 3c6a8ee1")
 	}
 
-	newP1, newP2, balanceERR := updatePlayers(oldSt, mv)
+	newP1, newP2, balanceERR := updatePlayersExchange(oldSt, mv)
 	if balanceERR != nil {
 		newSt = gameStateERR
 		newSt.parent = oldStPointer
@@ -122,7 +216,7 @@ func getNextState(oldStPointer *gameState, mv move) (newSt gameState, err error)
 	return newState, nil
 }
 
-func updatePlayers(st gameState, mv move) (fencer, fencer, error) {
+func updatePlayersExchange(st gameState, mv move) (fencer, fencer, error) {
 	p1 := st.p1
 	p2 := st.p2
 	b1 := p1.balance - mv.bid1
@@ -142,7 +236,7 @@ func updatePlayers(st gameState, mv move) (fencer, fencer, error) {
 	return p1, p2, nil
 }
 
-func checkMoveLegality(st gameState, mv move) error {
+func checkMoveLegalityExchange(st gameState, mv move) error {
 	if st.p1.balance == 0 || st.p2.balance == 0 {
 		return errors.New("An out of balance player is trying to make a move")
 	}
