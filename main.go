@@ -56,6 +56,8 @@ func launchCMD(c *ishell.Context) {
 
 	var moveKind moveTypeEnum
 	var currentState gameState
+	currentState.p1 = p1
+	currentState.p2 = p2
 
 	if chosenRules.approach == noAproach {
 		fmt.Println("input attacker")

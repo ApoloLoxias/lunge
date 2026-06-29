@@ -97,7 +97,7 @@ func getNextState(oldStPointer *gameState, mv move) (newSt gameState, err error)
 func getNextStateOOM(oldStPointer *gameState, mv move) (newSt gameState, err error) {
 	oldSt := *oldStPointer
 
-	legalityErr := checkMoveLegalityExchange(oldSt, mv)
+	legalityErr := checkMoveLegalityOOM(oldSt, mv)
 	if legalityErr != nil {
 		return oldSt, legalityErr
 	}
@@ -272,6 +272,26 @@ func checkMoveLegalityExchange(st gameState, mv move) error {
 
 	if st.kind == stateOOM {
 		return errors.New("unimplemented gameStateType: out-of-measure")
+	}
+
+	return nil
+}
+
+func checkMoveLegalityOOM(st gameState, mv move) error {
+	if st.p1.balance == 0 || st.p2.balance == 0 {
+		return errors.New("An out of balance player is trying to make a move")
+	}
+
+	if mv.bid1 > st.p1.balance || mv.bid2 > st.p2.balance {
+		return errors.New("Bids exceed balance")
+	}
+
+	if mv.kind != moveTypeAPPROACH {
+		return errors.New("invalid stateType-moveKind pair")
+	}
+
+	if st.kind != stateOOM {
+		return errors.New("wtf jk@s98Y")
 	}
 
 	return nil
