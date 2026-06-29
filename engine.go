@@ -39,9 +39,10 @@ type move struct {
 type moveTypeEnum string
 
 const (
-	moveTypeERR    moveTypeEnum = "zero-value moveType due to error return"
-	moveTypeONEATK moveTypeEnum = "p1 attacks p2"
-	moveTypeTWOATK moveTypeEnum = "p2 attacks p1"
+	moveTypeERR      moveTypeEnum = "zero-value moveType due to error return"
+	moveTypeONEATK   moveTypeEnum = "p1 attacks p2"
+	moveTypeTWOATK   moveTypeEnum = "p2 attacks p1"
+	moveTypeAPPROACH moveTypeEnum = "players approach one another"
 )
 
 type fencer struct {

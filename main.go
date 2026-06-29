@@ -24,14 +24,25 @@ func main() {
 }
 
 func launchCMD(c *ishell.Context) {
-	gameRules := []string{string(initiativeFIX), string(initiativeALT)}
-	rulesIndex := c.MultiChoice(gameRules, "Select a ruleset")
 	var chosenRules ruleset
-	switch rulesIndex {
+	var ruleIndex int
+
+	approachRules := []string{string(initiativeBidding), string(noAproach)}
+	ruleIndex = c.MultiChoice(approachRules, "Select an approach ruleset")
+	switch ruleIndex {
 	case 0:
-		chosenRules = ruleset{initiative: initiativeFIX}
+		chosenRules.approach = initiativeBidding
 	case 1:
-		chosenRules = ruleset{initiative: initiativeALT}
+		chosenRules.approach = noAproach
+	}
+
+	gameRules := []string{string(initiativeFIX), string(initiativeALT)}
+	ruleIndex = c.MultiChoice(gameRules, "Select a ruleset")
+	switch ruleIndex {
+	case 0:
+		chosenRules.initiative = initiativeFIX
+	case 1:
+		chosenRules.initiative = initiativeALT
 	}
 
 	fmt.Println("Input B1, B2")
@@ -43,33 +54,40 @@ func launchCMD(c *ishell.Context) {
 	var p2 fencer
 	p2.balance = b2
 
-	fmt.Println("input attacker")
-	attackerOptions := []string{"player1", "player2"}
-	question := "choose attacker"
-	attacker := c.MultiChoice(attackerOptions, question)
-
 	var moveKind moveTypeEnum
-	switch attacker {
-	case 0:
-		p1.role = roleATK
-		p2.role = roleDEF
-		moveKind = moveTypeONEATK
-	case 1:
-		p1.role = roleDEF
-		p2.role = roleATK
-		moveKind = moveTypeTWOATK
-	default:
-		p1.role = roleERR
-		p2.role = roleERR
-		moveKind = moveTypeERR
-	}
+	var currentState gameState
 
-	currentState := gameState{
-		p1:     p1,
-		p2:     p2,
-		parent: nil,
-		kind:   stateEXCHANGE,
-		rules:  chosenRules,
+	if chosenRules.approach == noAproach {
+		fmt.Println("input attacker")
+		attackerOptions := []string{"player1", "player2"}
+		question := "choose attacker"
+		attacker := c.MultiChoice(attackerOptions, question)
+
+		switch attacker {
+		case 0:
+			p1.role = roleATK
+			p2.role = roleDEF
+			moveKind = moveTypeONEATK
+		case 1:
+			p1.role = roleDEF
+			p2.role = roleATK
+			moveKind = moveTypeTWOATK
+		default:
+			p1.role = roleERR
+			p2.role = roleERR
+			moveKind = moveTypeERR
+		}
+
+		currentState = gameState{
+			p1:     p1,
+			p2:     p2,
+			parent: nil,
+			kind:   stateEXCHANGE,
+			rules:  chosenRules,
+		}
+	} else {
+		currentState.kind = stateOOM
+		currentState.rules = chosenRules
 	}
 
 	for true {
@@ -81,8 +99,12 @@ func launchCMD(c *ishell.Context) {
 			fmt.Println("player 2 has won the exchange")
 			os.Exit(0)
 		case stateOOM:
-			fmt.Println("players disengage")
-			os.Exit(0)
+			if currentState.parent != nil {
+				fmt.Println("players disengage")
+			}
+			if currentState.rules.approach == noAproach {
+				os.Exit(0)
+			}
 		case stateERR:
 			fmt.Println("malformed resulting gameState")
 			os.Exit(1)
@@ -108,17 +130,25 @@ func launchCMD(c *ishell.Context) {
 		fmt.Printf("Player 1 has bid %d, as %s\n", bid1, currentState.p1.role)
 		fmt.Printf("Player 2 has bid %d as %s\n", bid2, currentState.p2.role)
 
-		switch currentState.p1.role {
-		case roleATK:
-			moveKind = moveTypeONEATK
-		case roleDEF:
-			moveKind = moveTypeTWOATK
-		}
+		var currentMove move
+		switch currentState.kind {
+		case stateEXCHANGE:
+			switch currentState.p1.role {
+			case roleATK:
+				moveKind = moveTypeONEATK
+			case roleDEF:
+				moveKind = moveTypeTWOATK
+			}
 
-		currentMove := move{
-			kind: moveKind,
-			bid1: bid1,
-			bid2: bid2,
+			currentMove = move{
+				kind: moveKind,
+				bid1: bid1,
+				bid2: bid2,
+			}
+		case stateOOM:
+			currentMove.bid1 = bid1
+			currentMove.bid2 = bid2
+			currentMove.kind = moveTypeAPPROACH
 		}
 
 		var err error = nil
