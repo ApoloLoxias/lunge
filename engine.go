@@ -8,7 +8,8 @@ type gameState struct {
 
 	kind gameStateTypeEnum
 
-	rules ruleset
+	rules            ruleset
+	facultativeState map[facultativeStateElementEnum]facultativeStateElement
 
 	parent *gameState
 }
@@ -19,6 +20,12 @@ var gameStateERR = gameState{ //would be const if golang allowed fconst structs
 	kind:   stateERR,
 	parent: nil,
 }
+
+type facultativeStateElementEnum string
+
+const score facultativeStateElementEnum = "score"
+
+type facultativeStateElement interface{ facultativeStateElementFunc() error }
 
 type gameStateTypeEnum string
 
@@ -298,6 +305,17 @@ func checkMoveLegalityOOM(st gameState, mv move) error {
 }
 
 func strike(st gameState, mv move) (hit hitEnum, err error) {
+	switch st.rules.exchangeType {
+	case exchangeFencing:
+		return strikeClassic(st, mv)
+	case exchangingAuction:
+		return strikeAuction(st, mv)
+	default:
+		return hitERR, errors.New("Broken logic @ ./engine.go nsA19Tugy")
+	}
+}
+
+func strikeClassic(st gameState, mv move) (hit hitEnum, err error) {
 	if mv.bid1 > st.p1.balance || mv.bid2 > st.p2.balance {
 		return hitERR, errors.New("illegal strike")
 	}
