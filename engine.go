@@ -23,7 +23,10 @@ var gameStateERR = gameState{ //would be const if golang allowed fconst structs
 
 type facultativeStateElementEnum string
 
-const score facultativeStateElementEnum = "score"
+const (
+	score                 facultativeStateElementEnum = "score"
+	numGoodsToBeAuctioned facultativeStateElementEnum = "number of goods that are yet to be auctioned"
+)
 
 type facultativeStateElement interface{ facultativeStateElementFunc() error }
 
@@ -50,6 +53,7 @@ const (
 	moveTypeONEATK   moveTypeEnum = "p1 attacks p2"
 	moveTypeTWOATK   moveTypeEnum = "p2 attacks p1"
 	moveTypeAPPROACH moveTypeEnum = "players approach one another"
+	moveTypeAUCTION  moveTypeEnum = "players are bidding for an item"
 )
 
 type fencer struct {
@@ -73,11 +77,13 @@ const (
 type hitEnum string
 
 const (
-	hitERR hitEnum = "zero-value hit due to error return"
-	hitONE hitEnum = "p1 hit p2"
-	hitTWO hitEnum = "p2 hit p1"
-	hitMIS hitEnum = "no hit"
-	hitDIS hitEnum = "disengage"
+	hitERR    hitEnum = "zero-value hit due to error return"
+	hitONE    hitEnum = "p1 hit p2"
+	hitTWO    hitEnum = "p2 hit p1"
+	hitMIS    hitEnum = "no hit"
+	hitDIS    hitEnum = "disengage"
+	hitBuyONE hitEnum = "p1 bought the item"
+	hitBuyTWO hitEnum = "p2 bought the item"
 )
 
 type lungeEnum string
@@ -313,6 +319,29 @@ func strike(st gameState, mv move) (hit hitEnum, err error) {
 	default:
 		return hitERR, errors.New("Broken logic @ ./engine.go nsA19Tugy")
 	}
+}
+
+func strikeAuction(st gameState, mv move) (hit hitEnum, err error) {
+	if mv.bid1 > st.p1.balance || mv.bid2 > st.p2.balance {
+		err = errors.New("illegal strike")
+	}
+	if mv.kind != moveTypeAUCTION {
+		err = errors.New("illegal strike")
+	}
+	if err != nil {
+		return hitERR, err
+	}
+
+	switch {
+	case mv.bid1 > mv.bid2:
+		return hitBuyONE, nil
+	case mv.bid1 == mv.bid2:
+		return hitBuyTWO, nil
+	case mv.bid1 < mv.bid2:
+		return hitMIS, nil
+	}
+
+	return hitERR, errors.New("Broken core game logic @./engine.go hA8h")
 }
 
 func strikeClassic(st gameState, mv move) (hit hitEnum, err error) {
