@@ -72,6 +72,7 @@ const (
 	roleERR roleEnum = "zero-value role"
 	roleATK roleEnum = "attacker"
 	roleDEF roleEnum = "defender"
+	roleBUY          = "buyer"
 )
 
 type hitEnum string
@@ -194,6 +195,8 @@ func getNextStateExchange(oldStPointer *gameState, mv move) (newSt gameState, er
 	}
 
 	var newStType gameStateTypeEnum
+	var newStScore scoreStateElement
+
 	switch hit {
 	case hitONE:
 		newStType = stateWIN1
@@ -202,7 +205,22 @@ func getNextStateExchange(oldStPointer *gameState, mv move) (newSt gameState, er
 	case hitMIS:
 		newStType = stateEXCHANGE
 	case hitDIS:
-		newStType = stateOOM
+		switch oldSt.rules.exchangeType {
+		case exchangeFencing:
+			newStType = stateOOM
+		case exchangingAuction:
+			newStType = stateEXCHANGE
+		default:
+			return gameStateERR, errors.New("Broken logic @engine.go pleaseGodNo")
+		}
+	case hitBuyONE:
+		newStType = stateEXCHANGE
+		newStScore = oldSt.scoreValue()
+		newStScore[0] += 1
+	case hitBuyTWO:
+		newStType = stateEXCHANGE
+		newStScore = oldSt.scoreValue()
+		newStScore[1] += 1
 	default:
 		newStType = stateERR
 	}
@@ -225,6 +243,27 @@ func getNextStateExchange(oldStPointer *gameState, mv move) (newSt gameState, er
 		kind:   newStType,
 		rules:  oldSt.rules,
 		parent: oldStPointer,
+	}
+
+	if newState.rules.exchangeType == exchangingAuction {
+		newState.facultativeState = oldSt.facultativeState
+		newState.facultativeState[score] = newStScore
+		tmp := int(newState.facultativeState[numGoodsToBeAuctioned].(numGoodsToBeAuctionedStateElement))
+		tmp--
+		newState.facultativeState[numGoodsToBeAuctioned] = numGoodsToBeAuctionedStateElement(tmp)
+
+		if newState.numGoodsToBeAuctionedValue() == numGoodsToBeAuctionedStateElement(0) {
+			switch {
+			case newState.scoreValue()[0] > newState.scoreValue()[1]:
+				newState.kind = stateWIN1
+			case newState.scoreValue()[0] == newState.scoreValue()[1]:
+				newState.kind = stateOOM
+			case newState.scoreValue()[0] < newState.scoreValue()[1]:
+				newState.kind = stateWIN2
+			default:
+				return gameStateERR, errors.New("broken logic @engine.go lasy7HJ1")
+			}
+		}
 	}
 
 	return newState, nil
@@ -251,6 +290,11 @@ func updatePlayersExchange(st gameState, mv move) (fencer, fencer, error) {
 }
 
 func checkMoveLegalityExchange(st gameState, mv move) error {
+	// TODO
+	if st.rules.exchangeType == exchangingAuction {
+		return nil
+	}
+
 	if st.p1.balance == 0 || st.p2.balance == 0 {
 		return errors.New("An out of balance player is trying to make a move")
 	}
@@ -336,12 +380,12 @@ func strikeAuction(st gameState, mv move) (hit hitEnum, err error) {
 	case mv.bid1 > mv.bid2:
 		return hitBuyONE, nil
 	case mv.bid1 == mv.bid2:
-		return hitBuyTWO, nil
-	case mv.bid1 < mv.bid2:
 		return hitMIS, nil
+	case mv.bid1 < mv.bid2:
+		return hitBuyTWO, nil
 	}
 
-	return hitERR, errors.New("Broken core game logic @./engine.go hA8h")
+	return hitERR, errors.New("broken at engine.go jkash&IUTGKbn")
 }
 
 func strikeClassic(st gameState, mv move) (hit hitEnum, err error) {

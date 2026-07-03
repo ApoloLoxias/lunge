@@ -20,12 +20,19 @@ func main() {
 		Func: launchCMD,
 	})
 
+	shell.AddCmd(&ishell.Cmd{
+		Name: "launch-auction",
+		Help: "launch game in auction mode",
+		Func: launchAuctionCMD,
+	})
+
 	shell.Run()
 }
 
 func launchCMD(c *ishell.Context) {
 	var chosenRules ruleset
 	var ruleIndex int
+	chosenRules.exchangeType = exchangeFencing
 
 	approachRules := []string{string(initiativeBidding), string(noAproach)}
 	ruleIndex = c.MultiChoice(approachRules, "Select an approach ruleset")
@@ -163,4 +170,69 @@ func launchCMD(c *ishell.Context) {
 	}
 	fmt.Println(currentState)
 
+}
+
+func launchAuctionCMD(c *ishell.Context) {
+	fmt.Println("Starting balance?")
+	sb, _ := strconv.Atoi(c.ReadLine())
+	fmt.Println("How many goods to auction?")
+	ng, _ := strconv.Atoi(c.ReadLine())
+
+	p1 := fencer{
+		balance: sb,
+		role:    roleBUY,
+	}
+	p2 := fencer{
+		balance: sb,
+		role:    roleBUY,
+	}
+
+	moveKind := moveTypeAUCTION
+
+	var currentState gameState
+	currentState.p1 = p1
+	currentState.p2 = p2
+	currentState.facultativeState = make(map[facultativeStateElementEnum]facultativeStateElement)
+	currentState.facultativeState[numGoodsToBeAuctioned] = numGoodsToBeAuctionedStateElement(ng)
+	currentState.facultativeState[score] = scoreStateElement{0, 0}
+	currentState.kind = stateEXCHANGE
+	currentState.rules.exchangeType = exchangingAuction
+
+	for {
+		switch currentState.kind {
+		case stateWIN1:
+			fmt.Println("P1 won")
+		case stateWIN2:
+			fmt.Println("P2 won")
+		case stateOOM:
+			os.Exit(1)
+		case stateERR:
+			os.Exit(1)
+		case stateEXCHANGE:
+			fmt.Printf("%v goods left. Auction next good\n", currentState.numGoodsToBeAuctionedValue())
+		}
+
+		fmt.Println("Current game State:")
+		fmt.Printf("P1: %d balance | P2: %d balance\n %v goods left\n", currentState.p1.balance, currentState.p2.balance, currentState.numGoodsToBeAuctionedValue())
+
+		fmt.Println("p1 bid?")
+		bid1, err1 := strconv.Atoi(c.ReadPassword())
+		fmt.Println("p2 bid?")
+		bid2, err2 := strconv.Atoi(c.ReadPassword())
+		if err1 != nil || err2 != nil {
+			fmt.Printf("malformed input:\n b1='%v' | err='%v'\nb2='%v' | err='%v'", bid1, err1, bid2, err2)
+		}
+
+		currentMove := move{
+			kind: moveKind,
+			bid1: bid1,
+			bid2: bid2,
+		}
+
+		var err error
+		currentState, err = getNextState(&currentState, currentMove)
+		if err != nil {
+			fmt.Printf("Invalid state-move pair\nState: %v\nMove: %v\nErr: %v\n", currentState, currentMove, err)
+		}
+	}
 }

@@ -41,7 +41,7 @@ func (g gameState) numGoodsToBeAuctionedValue() numGoodsToBeAuctionedStateElemen
 	return g.facultativeState[numGoodsToBeAuctioned].(numGoodsToBeAuctionedStateElement)
 }
 
-type scoreStateElement map[fencer]int
+type scoreStateElement []int
 
 func (s scoreStateElement) facultativeStateElementFunc() error {
 	return errors.New("Uncallable func called @./rulesets vfrtY79iKm")
