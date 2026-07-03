@@ -195,7 +195,7 @@ func getNextStateExchange(oldStPointer *gameState, mv move) (newSt gameState, er
 	}
 
 	var newStType gameStateTypeEnum
-	var newStScore scoreStateElement
+	var newStScore scoreStateElement = scoreStateElement{0, 0}
 
 	switch hit {
 	case hitONE:
@@ -204,6 +204,9 @@ func getNextStateExchange(oldStPointer *gameState, mv move) (newSt gameState, er
 		newStType = stateWIN2
 	case hitMIS:
 		newStType = stateEXCHANGE
+		if oldSt.kind == gameStateTypeEnum(exchangingAuction) {
+			newStScore = oldSt.scoreValue()
+		}
 	case hitDIS:
 		switch oldSt.rules.exchangeType {
 		case exchangeFencing:

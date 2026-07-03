@@ -202,9 +202,12 @@ func launchAuctionCMD(c *ishell.Context) {
 		switch currentState.kind {
 		case stateWIN1:
 			fmt.Println("P1 won")
+			os.Exit(0)
 		case stateWIN2:
 			fmt.Println("P2 won")
+			os.Exit(0)
 		case stateOOM:
+			fmt.Println("Either draw or bug")
 			os.Exit(1)
 		case stateERR:
 			os.Exit(1)
@@ -213,7 +216,8 @@ func launchAuctionCMD(c *ishell.Context) {
 		}
 
 		fmt.Println("Current game State:")
-		fmt.Printf("P1: %d balance | P2: %d balance\n %v goods left\n", currentState.p1.balance, currentState.p2.balance, currentState.numGoodsToBeAuctionedValue())
+		fmt.Printf("Game phase: %s", currentState.kind)
+		fmt.Printf("P1: %d balance | P2: %d balance\n %v goods left\nScore: %v\n", currentState.p1.balance, currentState.p2.balance, currentState.numGoodsToBeAuctionedValue(), currentState.scoreValue())
 
 		fmt.Println("p1 bid?")
 		bid1, err1 := strconv.Atoi(c.ReadPassword())
