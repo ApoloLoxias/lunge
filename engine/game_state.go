@@ -8,38 +8,37 @@ import (
 type GameState struct {
 	Players []Player
 	Phase   Phase
-	Rules   Ruleset
+	Pending []Move
 }
-
-type Ruleset struct{} //TODO
-
-func (r Ruleset) String() string {
-	return "ruleset"
+type GameStateInfo struct {
+	PlayerInfo
+	Phase   bool
+	Pending []MoveInfo
 }
 
 type Player struct {
+	ID      int
 	Name    Optional[string]
 	Balance Optional[int]
 	Role    Optional[Role]
 	Score   Optional[int]
 }
-
-type Role string
-
-const (
-	roleAttacker Role = "attacker"
-	roleDefender Role = "defender"
-)
-
-type Phase string
-
-const (
-	phaseApproach Phase = "approach"
-	phaseExchange Phase = "exchange"
-	phaseEnd      Phase = "concluded game"
-)
+type PlayerInfo struct {
+	ID      bool
+	Name    []Optional[bool]
+	Balance []Optional[bool]
+	Role    []Optional[bool]
+	Score   []Optional[bool]
+}
 
 /**/
+
+func (g *GameState) NewPlayer(p Player) {
+	np := p
+	ID := len(g.Players)
+	np.ID = ID
+	g.Players = append(g.Players, np)
+}
 
 func (g GameState) String() string {
 	var b strings.Builder
@@ -55,7 +54,7 @@ func (g GameState) String() string {
 
 	result := fmt.Sprintf(
 		"GameState{Players: %v; Phase: %v; Rules: %v}",
-		b.String(), g.Phase, g.Rules,
+		b.String(), g.Phase,
 	)
 	return result
 }
