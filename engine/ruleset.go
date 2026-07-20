@@ -91,11 +91,15 @@ func CompareSimpleBid(g GameState) Comparison {
 	}
 
 	for i, move := range SortedMoves {
-		result[i] = move
-		for j := range SortedMoves {
-			result[i][j] = move[i]
+		for j := range len(result) {
+			result[i][j] = move.Bid.Value
 		}
+	}
 
+	for i := range result {
+		for j := range result {
+			result[i][j] = result[i][j] - result[j][j]
+		}
 	}
 
 	return Comparison{Delta: Optional[[][]int]{OK: true, Value: result}}
