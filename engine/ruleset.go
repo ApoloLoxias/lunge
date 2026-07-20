@@ -1,10 +1,12 @@
 package engine
 
 type Move struct {
-	Bid Optional[int]
+	Actor int
+	Bid   Optional[int]
 }
 type MoveInfo struct {
-	Bid Optional[bool]
+	Actor bool
+	Bid   Optional[bool]
 }
 
 type Ruleset struct {
@@ -14,8 +16,8 @@ type Ruleset struct {
 }
 
 type PhaseRules struct {
-	Name       Optional[string]
-	Disclose   func(GameState) ([]PlayerView, error)
+	Name       string
+	Disclose   func(GameState) ([]GameStateInfo, error)
 	Compare    func([]Move) (Comparison, error)
 	Resolve    func(GameState, Comparison) (GameState, error)
 	Validation func(GameState, Move) error
@@ -36,8 +38,8 @@ const (
 	phaseEnd      Phase = "concluded game"
 )
 
-type PlayerView struct {
-	GameStateInfo
+type Comparison struct {
+	Delta Optional[[][]int]
 }
 
 /* Specific Ruleset Functions*/
@@ -46,33 +48,68 @@ type PlayerView struct {
 
 /* Disclosures */
 
-func DiscloseStandard(g GameState) ([]PlayerView, error) {
-	var view PlayerView
+func DiscloseStandard(g GameState) ([]GameStateInfo, error) {
+	var info GameStateInfo
 	num_players := len(g.Players)
 	TRUE := Optional[bool]{Value: true, OK: true}
 	FALSE := Optional[bool]{Value: false, OK: true}
 
-	view.Phase = true
+	info.Phase = true
+	info.Name = make([]Optional[bool], num_players)
 	for i := range num_players {
-		view.Name[i] = TRUE
-		view.Balance[i] = TRUE
-		view.Role[i] = TRUE
-		view.Score[i] = TRUE
-		view.Pending[i].Bid = FALSE
+		info.Name[i] = TRUE
+		info.Balance[i] = TRUE
+		info.Role[i] = TRUE
+		info.Score[i] = TRUE
+		info.Pending[i].Bid = FALSE
+		info.Pending[i].Actor = true
 	}
 
-	var result []PlayerView
+	var result []GameStateInfo
 	for len(result) < num_players {
-		result = append(result, view)
+		result = append(result, info)
 	}
 
 	for i, r := range result {
 		for j := range r.Pending {
 			if i == j {
-				r.Pending[j].Bid = TRUE
+				result[i].Pending[j].Bid = TRUE
 			}
 		}
 	}
 
 	return result, nil
+}
+
+/* Comparisons */
+
+func CompareSimpleBid(g GameState) Comparison {
+	SortedMoves := SortMoves(g.Pending)
+	result := make([][]int, len(SortedMoves))
+	for i := range result {
+		result[i] = make([]int, len(SortedMoves))
+	}
+
+	for i, move := range SortedMoves {
+		result[i] = move
+		for j := range SortedMoves {
+			result[i][j] = move[i]
+		}
+
+	}
+
+	return Comparison{Delta: Optional[[][]int]{OK: true, Value: result}}
+}
+
+func SortMoves(mm []Move) []Move {
+	var j int
+	for i, m := range mm {
+		j = i
+		for j > 0 && m.Actor < mm[j].Actor {
+			mm[j+1] = mm[j]
+			j = j - 1
+		}
+		mm[j+1] = m
+	}
+	return mm
 }
